@@ -1,0 +1,43 @@
+{
+  "name": "repo-mem",
+  "version": "0.1.0",
+  "description": "Team memory for Git repos. Auto-captures Claude Code sessions into searchable SQLite databases, shared across collaborators.",
+  "type": "module",
+  "bin": {
+    "repo-mem": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "templates/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "mcp",
+    "model-context-protocol",
+    "memory",
+    "team",
+    "git",
+    "sqlite",
+    "fts5",
+    "knowledge-base",
+    "ai-tools",
+    "developer-tools"
+  ],
+  "author": "Timo Sieber <timo.sieber@trendingmedia.ch>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AuronTM/repo-mem.git"
+  },
+  "homepage": "https://github.com/AuronTM/repo-mem#readme",
+  "bugs": {
+    "url": "https://github.com/AuronTM/repo-mem/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
