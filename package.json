@@ -1,6 +1,6 @@
 {
   "name": "repo-mem",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Team memory for Git repos. Auto-captures Claude Code sessions into searchable SQLite databases, shared across collaborators.",
   "type": "module",
   "bin": {

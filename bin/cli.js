@@ -83,8 +83,13 @@ const TEMPLATE_FILES = [
   'start-server.js',
   'schema.sql',
   'package.json',
-  '.gitignore',
 ];
+
+// .gitignore content (inline because npm strips .gitignore from published packages)
+const REPO_MEM_GITIGNORE = `node_modules/
+*.db-wal
+*.db-shm
+`;
 
 const HOOK_FILES = [
   'hooks/save-hook.js',
@@ -223,6 +228,12 @@ function cmdInit() {
         continue;
       }
       copyFileSync(src, dest);
+    }
+
+    // Create .gitignore (inline, not from template — npm strips .gitignore files)
+    const repoMemGitignore = join(repoMemDir, '.gitignore');
+    if (!existsSync(repoMemGitignore)) {
+      writeFileSync(repoMemGitignore, REPO_MEM_GITIGNORE, 'utf-8');
     }
 
     // Create data/.gitkeep
