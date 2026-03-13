@@ -31,11 +31,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AuronTM/repo-mem.git"
+    "url": "git+https://github.com/timosieber/repo-mem.git"
   },
-  "homepage": "https://github.com/AuronTM/repo-mem#readme",
+  "homepage": "https://github.com/timosieber/repo-mem#readme",
   "bugs": {
-    "url": "https://github.com/AuronTM/repo-mem/issues"
+    "url": "https://github.com/timosieber/repo-mem/issues"
   },
   "engines": {
     "node": ">=18.0.0"

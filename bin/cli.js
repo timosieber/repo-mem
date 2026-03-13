@@ -450,7 +450,7 @@ function cmdHelp() {
     4. Use "save" tool for structured, high-value observations
 
   MORE INFO
-    https://github.com/AuronTM/repo-mem
+    https://github.com/timosieber/repo-mem
 `);
 }
 

@@ -25,5 +25,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLAUDE.md auto-update with usage instructions
 - User identity detection: env var > git email > OS username mapping
 
-[Unreleased]: https://github.com/AuronTM/repo-mem/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/AuronTM/repo-mem/releases/tag/v0.1.0
+[Unreleased]: https://github.com/timosieber/repo-mem/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/timosieber/repo-mem/releases/tag/v0.1.0

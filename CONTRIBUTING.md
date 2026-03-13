@@ -14,7 +14,7 @@ Thanks for your interest in contributing to repo-mem! This document covers every
 
 ```bash
 # Clone the repo
-git clone https://github.com/AuronTM/repo-mem.git
+git clone https://github.com/timosieber/repo-mem.git
 cd repo-mem
 
 # No install needed — repo-mem has zero dev dependencies.
@@ -67,7 +67,7 @@ node /path/to/repo-mem/bin/cli.js status
 
 ### Reporting bugs
 
-Open a [GitHub issue](https://github.com/AuronTM/repo-mem/issues/new?template=bug_report.md) with:
+Open a [GitHub issue](https://github.com/timosieber/repo-mem/issues/new?template=bug_report.md) with:
 
 - Your Node.js version (`node --version`)
 - Your OS
@@ -77,7 +77,7 @@ Open a [GitHub issue](https://github.com/AuronTM/repo-mem/issues/new?template=bu
 
 ### Suggesting features
 
-Open a [GitHub issue](https://github.com/AuronTM/repo-mem/issues/new?template=feature_request.md) describing:
+Open a [GitHub issue](https://github.com/timosieber/repo-mem/issues/new?template=feature_request.md) describing:
 
 - The problem you're trying to solve
 - Your proposed solution
@@ -149,7 +149,7 @@ This is the core design choice. By storing data in Git, team knowledge follows t
 
 ## Getting Help
 
-- Open an issue on [GitHub](https://github.com/AuronTM/repo-mem/issues)
+- Open an issue on [GitHub](https://github.com/timosieber/repo-mem/issues)
 - Check existing issues and discussions for solutions
 
 ## License

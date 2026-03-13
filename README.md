@@ -8,9 +8,9 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/repo-mem"><img src="https://img.shields.io/npm/v/repo-mem.svg" alt="npm version"></a>
-  <a href="https://github.com/AuronTM/repo-mem/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/repo-mem.svg" alt="license"></a>
+  <a href="https://github.com/timosieber/repo-mem/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/repo-mem.svg" alt="license"></a>
   <a href="https://www.npmjs.com/package/repo-mem"><img src="https://img.shields.io/npm/dm/repo-mem.svg" alt="downloads"></a>
-  <a href="https://github.com/AuronTM/repo-mem/issues"><img src="https://img.shields.io/github/issues/AuronTM/repo-mem.svg" alt="issues"></a>
+  <a href="https://github.com/timosieber/repo-mem/issues"><img src="https://img.shields.io/github/issues/timosieber/repo-mem.svg" alt="issues"></a>
 </p>
 
 <p align="center">
