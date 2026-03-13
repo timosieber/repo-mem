@@ -23,21 +23,34 @@
 
 ---
 
-Every bug fix, architecture decision, and code discovery your team makes with Claude Code is automatically recorded and searchable in future sessions — across all collaborators.
+## Why repo-mem exists
 
-## The Problem
+Real projects have multiple developers working with Claude Code on the same codebase — sometimes for months. Every session produces valuable knowledge: why something was built a certain way, what broke and how it was fixed, which approaches were tried and abandoned.
 
-When developers use Claude Code, valuable knowledge gets lost between sessions. Someone debugs a tricky auth bug on Monday, but by Wednesday a teammate hits the same issue with no way to find the earlier fix. `CLAUDE.md` files help, but they're manual, single-user, and don't scale.
+**Without repo-mem, all of that disappears when the session ends.**
 
-## The Solution
+Developer A spends an afternoon restructuring the payment flow and discovers that the webhook handler has a subtle race condition. She fixes it, commits, moves on. Two weeks later, Developer B needs to add retry logic to the same webhook handler. Claude starts from zero — no idea about the race condition, the fix, or why certain code looks the way it does. B's Claude might even reintroduce the bug that A already solved.
 
-**repo-mem** gives your repo a shared, searchable memory that works automatically:
+This isn't about finding "the same bug twice." It's about **connected knowledge**. When B works on something related to what A did, Claude should know:
+
+- What A changed and *why* (not just the diff, but the reasoning)
+- What problems A ran into along the way
+- What architectural decisions were made and what trade-offs were considered
+- What A explicitly wanted to preserve for future sessions
+
+**repo-mem makes this automatic.** Every session's key discoveries, bug fixes, and decisions are captured and searchable by every team member's Claude instance. When B starts working on that webhook, Claude can instantly find A's observations about the race condition — complete with root cause analysis, the fix, and lessons learned.
+
+### Built for real teams
+
+We built repo-mem for our own 3-person team working on a GPS-based time tracking system ([AURON](https://github.com/timosieber/AURON)). With 4,000+ observations across iOS, Android, backend, and admin dashboard — repo-mem is how our Claude instances share context about entry/exit detection edge cases, Supabase RLS policies, offline sync bugs, and hundreds of other decisions that would be impossible to maintain in a CLAUDE.md file.
+
+## Key features
 
 - **Zero effort** — Knowledge is captured via hooks, no manual steps needed
 - **Team-wide** — Everyone's discoveries are searchable by everyone else
 - **Git-native** — Data lives in the repo, shared via normal `git push`/`pull`
 - **Token-efficient** — Compact indexes (~50 tokens/result), load full details on demand
-- **Fast** — SQLite FTS5 full-text search, sub-millisecond queries
+- **Lightweight** — SQLite + FTS5, only 2 npm dependencies, no external services
 
 ## Quick Start
 
@@ -107,10 +120,31 @@ The schema tracks three entities:
 
 ## Team Workflow
 
+**Monday:** Alice refactors the payment service. She discovers that the webhook handler has a race condition with concurrent requests. Claude saves the finding:
+
 ```
-Alice fixes auth bug → save() → git push
-Bob pulls → search({query: "auth"}) → finds Alice's fix with full root cause analysis
+save({
+  type: "bugfix",
+  title: "Payment webhook race condition with concurrent retries",
+  narrative: "When Stripe sends multiple webhooks within 100ms, the handler creates
+    duplicate records because the DB check and insert aren't atomic. Fixed with
+    SELECT FOR UPDATE + unique constraint on idempotency_key.",
+  facts: ["Stripe can send duplicate webhooks within 100ms",
+          "Must use DB-level uniqueness, not application-level checks"],
+  files_modified: ["src/webhooks/payment.ts", "migrations/add_idempotency_key.sql"]
+})
 ```
+
+**Wednesday:** Bob needs to add retry logic to the same webhook handler. His Claude starts a new session, and **automatically finds Alice's observation**:
+
+```
+search({query: "webhook payment"})
+→ #847 | Alice | bugfix | Payment webhook race condition with concurrent retries
+```
+
+Bob's Claude now knows about the race condition, the idempotency key pattern, and why the code looks the way it does — before writing a single line.
+
+**This is the difference.** Without repo-mem, Bob's Claude would have started blind, potentially reintroducing the concurrency bug or spending time rediscovering what Alice already solved.
 
 Each person's SQLite database is small (typically < 1 MB) and merges cleanly via Git since each collaborator writes only to their own file.
 
