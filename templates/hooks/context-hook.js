@@ -61,6 +61,48 @@ function shortUser(email) {
   return email.split('@')[0] || email;
 }
 
+function findSimilarByFTS(recentTitles, dbFiles, Database, dataDir) {
+  const STOP_WORDS = new Set([
+    'der','die','das','ein','eine','ist','und','oder','nicht',
+    'the','is','are','and','or','not','fix','bug','please',
+    'kann','wie','was','wir','ich','hat','haben','mach','zeig',
+  ]);
+  const words = recentTitles.join(' ')
+    .split(/[\s,.!?:;()\[\]{}]+/)
+    .filter(w => w.length > 3 && !STOP_WORDS.has(w.toLowerCase()))
+    .slice(0, 6);
+  if (words.length === 0) return [];
+
+  const ftsQuery = words.map(w => `"${w}"`).join(' OR ');
+  const results = [];
+
+  for (const file of dbFiles) {
+    try {
+      const db = new Database(join(dataDir, file), { readonly: true });
+      db.pragma('journal_mode = WAL');
+      const user = file.replace('.db', '');
+
+      const rows = db.prepare(`
+        SELECT o.id, o.title, o.type, rank
+        FROM observations_fts fts
+        JOIN observations o ON o.id = fts.rowid
+        WHERE observations_fts MATCH ?
+        AND o.type IN ('bugfix', 'feature', 'decision', 'discovery')
+        ORDER BY rank
+        LIMIT 5
+      `).all(ftsQuery);
+
+      for (const r of rows) {
+        results.push({ id: r.id, title: r.title, type: r.type, user, _rank: r.rank });
+      }
+      db.close();
+    } catch { /* skip broken/locked DBs */ }
+  }
+
+  results.sort((a, b) => a._rank - b._rank);
+  return results.slice(0, 3);
+}
+
 async function main() {
   // Consume stdin (required by hook protocol)
   let raw = '';
@@ -85,7 +127,7 @@ async function main() {
     }
 
     const currentUser = getUser();
-    const cutoff24h = Date.now() - (24 * 60 * 60 * 1000);
+    const cutoff24h = Math.floor(Date.now() / 1000) - (24 * 60 * 60);
 
     // Collect stats + last 5 high-signal events per user
     const userStats = [];
@@ -181,10 +223,33 @@ async function main() {
     if (topEvents.length > 0) {
       ctx += '\n## Recent\n';
       for (const e of topEvents) {
-        const time = new Date(e.created_at_epoch).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const time = new Date(e.created_at_epoch * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
         ctx += `- ${time} ${e.user}: ${e.title || '(untitled)'}\n`;
       }
     }
+
+    // Proactive similarity: find related observations based on recent event titles
+    const recentTitles = topEvents.map(e => e.title || '').filter(Boolean);
+    const similar = findSimilarByFTS(recentTitles, dbFiles, Database, dataDir);
+
+    if (similar.length > 0) {
+      const emoji = { bugfix: '\u{1F534}', feature: '\u{1F7E3}', decision: '\u2696\uFE0F', discovery: '\u{1F535}' };
+      ctx += '\n## Possibly Related\n';
+      for (const s of similar) {
+        ctx += `- ${emoji[s.type] || '\u2705'} #${s.id} (${s.user}): ${s.title} → \`get({id: ${s.id}, user: "${s.user}"})\`\n`;
+      }
+      ctx += '_Keyword matches. Use `search` for semantic similarity._\n';
+    }
+
+    // Smart routing suggestion based on recent titles
+    try {
+      const { keywordRoute } = await import('../lib/agent-router.js');
+      const routingText = [lastSummaryRequest, ...recentTitles].filter(Boolean).join(' ');
+      const route = keywordRoute(routingText);
+      if (route && route.confidence !== 'low') {
+        ctx += `\n## Routing Suggestion\nRecommended agent: **${route.agent}** (${route.confidence})\n`;
+      }
+    } catch { /* non-blocking */ }
 
     ctx += '\nUse `search` from repo-mem MCP to find past knowledge before starting work.\n';
 

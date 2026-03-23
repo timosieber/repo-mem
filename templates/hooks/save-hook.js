@@ -23,7 +23,7 @@
 
 import { createRequire } from 'module';
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -61,8 +61,17 @@ function isHighSignal(toolName, toolInput) {
     return null;
   }
 
-  // MCP tools that write to external systems
-  if (toolName.startsWith('mcp__supabase__') && /apply|deploy|execute/.test(toolName)) return 'supabase';
+  // MCP tools that write to external systems (skip read-only queries)
+  if (toolName.startsWith('mcp__supabase__')) {
+    if (/apply_migration|deploy_edge_function/.test(toolName)) return 'supabase';
+    if (toolName === 'mcp__supabase__execute_sql') {
+      const sql = (toolInput?.query || '').trim().toUpperCase();
+      // Only capture write operations, skip SELECT/WITH/EXPLAIN
+      if (/^(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|TRUNCATE)/.test(sql)) return 'supabase';
+      return null; // Skip read-only queries
+    }
+    return null;
+  }
 
   return null;
 }
@@ -102,7 +111,11 @@ function generateTitle(signal, toolInput) {
     case 'test': return 'Run tests';
     case 'deploy': return 'Deploy';
     case 'migration': return 'Run migration';
-    case 'supabase': return `Supabase: ${toolInput?.name || 'operation'}`;
+    case 'supabase': {
+      // apply_migration has .name, execute_sql has .query, deploy_edge_function has .name
+      const label = toolInput?.name || (toolInput?.query ? toolInput.query.trim().split(/\s+/).slice(0, 6).join(' ') : null) || 'operation';
+      return `Supabase: ${label.substring(0, 80)}`;
+    }
     default: return cmd.substring(0, 60);
   }
 }
@@ -136,7 +149,7 @@ async function main() {
 
     // Build concise narrative
     const cmd = parsedInput?.command || '';
-    const resp = typeof tool_response === 'string' ? tool_response : '';
+    const resp = typeof tool_response === 'string' ? tool_response : (tool_response ? JSON.stringify(tool_response).substring(0, 200) : '');
     let narrative = cmd.substring(0, 200);
     if (signal === 'commit' && resp) {
       narrative += ` -> ${resp.split('\n')[0].substring(0, 100)}`;
@@ -146,20 +159,22 @@ async function main() {
       const lines = resp.trim().split('\n');
       narrative = lines.slice(-3).join(' | ').substring(0, 300);
     }
+    if (signal === 'supabase') {
+      // Build narrative from MCP tool input fields
+      const parts = [];
+      if (parsedInput?.name) parts.push(`name: ${parsedInput.name}`);
+      if (parsedInput?.query) parts.push(`sql: ${parsedInput.query.substring(0, 300)}`);
+      if (parsedInput?.function_name) parts.push(`function: ${parsedInput.function_name}`);
+      narrative = parts.join(' | ').substring(0, 400);
+    }
 
-    const Database = require('better-sqlite3');
+    const { openDb, initDb } = await import('../lib/schema-manager.js');
     const dataDir = join(REPO_MEM_ROOT, 'data');
     mkdirSync(dataDir, { recursive: true });
 
     const dbPath = join(dataDir, `${user}.db`);
-    const db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('synchronous = NORMAL');
-
-    const schemaPath = join(REPO_MEM_ROOT, 'schema.sql');
-    if (existsSync(schemaPath)) {
-      db.exec(readFileSync(schemaPath, 'utf-8'));
-    }
+    const db = openDb(dbPath);
+    initDb(db);
 
     db.prepare(`
       INSERT INTO observations (session_id, user, project, text, type, title, narrative, discovery_tokens, created_at, created_at_epoch)
@@ -174,7 +189,7 @@ async function main() {
       narrative,
       Math.ceil((title.length + (narrative?.length || 0)) / 4),
       now.toISOString(),
-      now.getTime()
+      Math.floor(now.getTime() / 1000)
     );
 
     db.close();

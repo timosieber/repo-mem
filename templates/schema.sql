@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS session_summaries (
   created_at_epoch INTEGER NOT NULL
 );
 
--- FTS5 full-text search
+-- FTS5 Volltextsuche
 CREATE VIRTUAL TABLE IF NOT EXISTS observations_fts USING fts5(
   title, subtitle, narrative, text, facts, concepts,
   content=observations, content_rowid=id
@@ -63,7 +63,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS summaries_fts USING fts5(
   content=session_summaries, content_rowid=id
 );
 
--- Triggers for FTS sync
+-- Triggers fuer FTS Sync
 CREATE TRIGGER IF NOT EXISTS observations_ai AFTER INSERT ON observations BEGIN
   INSERT INTO observations_fts(rowid, title, subtitle, narrative, text, facts, concepts)
   VALUES (new.id, new.title, new.subtitle, new.narrative, new.text, new.facts, new.concepts);
@@ -81,3 +81,45 @@ CREATE INDEX IF NOT EXISTS idx_obs_type ON observations(type);
 CREATE INDEX IF NOT EXISTS idx_obs_epoch ON observations(created_at_epoch DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user);
 CREATE INDEX IF NOT EXISTS idx_summaries_user ON session_summaries(user);
+
+-- Learning Loop: Usage tracking
+CREATE TABLE IF NOT EXISTS observation_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  observation_id INTEGER NOT NULL,
+  observation_user TEXT NOT NULL,
+  session_id TEXT,
+  user TEXT NOT NULL,
+  action TEXT CHECK(action IN ('viewed', 'contributed', 'rated_helpful', 'rated_unhelpful')) DEFAULT 'viewed',
+  comment TEXT,
+  created_at TEXT NOT NULL,
+  created_at_epoch INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_usage_obs ON observation_usage(observation_id, observation_user);
+CREATE INDEX IF NOT EXISTS idx_usage_session ON observation_usage(session_id);
+
+-- Learning Loop Phase 2: Pattern clustering
+CREATE TABLE IF NOT EXISTS patterns (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL,
+  centroid BLOB,
+  member_count INTEGER DEFAULT 0,
+  recommended_agent_type TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  merged_into_id INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS pattern_members (
+  pattern_id INTEGER NOT NULL,
+  observation_id INTEGER NOT NULL,
+  observation_user TEXT NOT NULL,
+  similarity REAL,
+  added_at TEXT NOT NULL,
+  PRIMARY KEY (pattern_id, observation_id, observation_user)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pattern_members_obs ON pattern_members(observation_id, observation_user);
+CREATE INDEX IF NOT EXISTS idx_patterns_active ON patterns(id) WHERE merged_into_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_patterns_category ON patterns(category);
